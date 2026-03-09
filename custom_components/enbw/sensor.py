@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_STATION_ID, DOMAIN, STATUS_AVAILABLE, STATUS_OCCUPIED, STATUS_OUT_OF_SERVICE
+from .const import CONF_STATION_ID, DOMAIN, STATUS_AVAILABLE, STATUS_BLOCKED, STATUS_OCCUPIED, STATUS_OUT_OF_SERVICE
 from .coordinator import EnbwCoordinator
 
 
@@ -147,7 +147,7 @@ class EnbwChargePointStatusSensor(EnbwBaseSensor):
         super().__init__(coordinator, entry)
         self._evse_id = evse_id
         self._index = index
-        self._attr_options = [STATUS_AVAILABLE, STATUS_OCCUPIED, STATUS_OUT_OF_SERVICE]
+        self._attr_options = [STATUS_AVAILABLE, STATUS_BLOCKED, STATUS_OCCUPIED, STATUS_OUT_OF_SERVICE]
 
     @property
     def unique_id(self) -> str:
@@ -167,6 +167,8 @@ class EnbwChargePointStatusSensor(EnbwBaseSensor):
             return "mdi:ev-station"
         if cp.status == STATUS_OCCUPIED:
             return "mdi:car-electric-outline"
+        if cp.status == STATUS_BLOCKED:
+            return "mdi:lock"
         if cp.status == STATUS_OUT_OF_SERVICE:
             return "mdi:ev-station-off"
         # Available - show connector-specific icon

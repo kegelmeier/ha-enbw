@@ -77,6 +77,7 @@
         "name": "Ladepunkt {index}",
         "state": {
           "AVAILABLE": "Verf\u00fcgbar",
+          "BLOCKED": "Blockiert",
           "OCCUPIED": "Belegt",
           "OUT_OF_SERVICE": "Au\u00dfer Betrieb"
         }

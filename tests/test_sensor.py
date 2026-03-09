@@ -240,12 +240,39 @@ class TestChargePointStatusSensor:
 
         assert sensor.extra_state_attributes == {}
 
+    def test_native_value_blocked(self):
+        data = make_station_data()
+        data.charge_points[0] = ChargePoint(
+            evse_id="BLOCKED_TEST",
+            status="BLOCKED",
+            connectors=[Connector("Typ 2", 22.0, False)],
+        )
+        coordinator = _make_coordinator(data)
+        entry = _make_entry()
+        sensor = EnbwChargePointStatusSensor(coordinator, entry, "BLOCKED_TEST", 0)
+
+        assert sensor.native_value == "BLOCKED"
+
+    def test_icon_blocked(self):
+        data = make_station_data()
+        data.charge_points[0] = ChargePoint(
+            evse_id="BLOCKED_TEST",
+            status="BLOCKED",
+            connectors=[Connector("Typ 2", 22.0, False)],
+        )
+        coordinator = _make_coordinator(data)
+        entry = _make_entry()
+        sensor = EnbwChargePointStatusSensor(coordinator, entry, "BLOCKED_TEST", 0)
+
+        assert sensor.icon == "mdi:lock"
+
     def test_options_list(self):
         coordinator = _make_coordinator(make_station_data())
         entry = _make_entry()
         sensor = EnbwChargePointStatusSensor(coordinator, entry, "E1", 0)
 
         assert "AVAILABLE" in sensor.options
+        assert "BLOCKED" in sensor.options
         assert "OCCUPIED" in sensor.options
         assert "OUT_OF_SERVICE" in sensor.options
 
