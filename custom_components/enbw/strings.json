@@ -1,0 +1,94 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "EnBW Charging Station",
+        "description": "Choose how to add a charging station.",
+        "menu_options": {
+          "manual": "Enter station ID manually",
+          "search": "Search by location"
+        }
+      },
+      "manual": {
+        "title": "Enter Station Details",
+        "description": "Enter the station ID and your API key. You can find both using browser developer tools on the [EnBW charging map](https://www.enbw.com/elektromobilitaet/produkte/mobilityplus-app/ladestation-finden/map).",
+        "data": {
+          "station_id": "Station ID",
+          "api_key": "API Key"
+        }
+      },
+      "search": {
+        "title": "Search for Stations",
+        "description": "Search for charging stations near a location. Enter your API key and search coordinates.",
+        "data": {
+          "api_key": "API Key",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "search_radius": "Search radius"
+        }
+      },
+      "select_station": {
+        "title": "Select Station",
+        "description": "Select a charging station from the search results.",
+        "data": {
+          "station_id": "Charging Station"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Station",
+        "data": {
+          "station_id": "Station ID",
+          "api_key": "API Key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API key",
+      "cannot_connect": "Cannot connect to EnBW API",
+      "station_not_found": "Station not found",
+      "no_stations_found": "No stations found in this area"
+    },
+    "abort": {
+      "already_configured": "This station is already configured",
+      "reconfigure_successful": "Reconfiguration successful"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "scan_interval": "Update interval"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "available_charge_points": {
+        "name": "Available chargers"
+      },
+      "total_charge_points": {
+        "name": "Total chargers"
+      },
+      "unknown_charge_points": {
+        "name": "Unknown state chargers"
+      },
+      "charge_point_status": {
+        "name": "Charger {index}",
+        "state": {
+          "AVAILABLE": "Available",
+          "OCCUPIED": "Occupied",
+          "OUT_OF_SERVICE": "Out of service"
+        }
+      },
+      "charge_point_power": {
+        "name": "Charger {index} power"
+      }
+    },
+    "binary_sensor": {
+      "station_available": {
+        "name": "Available"
+      }
+    }
+  }
+}
