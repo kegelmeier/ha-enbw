@@ -1,0 +1,94 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "EnBW Ladestation",
+        "description": "W\u00e4hle, wie du eine Ladestation hinzuf\u00fcgen m\u00f6chtest.",
+        "menu_options": {
+          "manual": "Stations-ID manuell eingeben",
+          "search": "Nach Standort suchen"
+        }
+      },
+      "manual": {
+        "title": "Stationsdetails eingeben",
+        "description": "Gib die Stations-ID und deinen API-Schl\u00fcssel ein. Beides findest du \u00fcber die Browser-Entwicklertools auf der [EnBW Ladekarte](https://www.enbw.com/elektromobilitaet/produkte/mobilityplus-app/ladestation-finden/map).",
+        "data": {
+          "station_id": "Stations-ID",
+          "api_key": "API-Schl\u00fcssel"
+        }
+      },
+      "search": {
+        "title": "Ladestationen suchen",
+        "description": "Suche nach Ladestationen in der N\u00e4he eines Standorts. Gib deinen API-Schl\u00fcssel und die Suchkoordinaten ein.",
+        "data": {
+          "api_key": "API-Schl\u00fcssel",
+          "latitude": "Breitengrad",
+          "longitude": "L\u00e4ngengrad",
+          "search_radius": "Suchradius"
+        }
+      },
+      "select_station": {
+        "title": "Station ausw\u00e4hlen",
+        "description": "W\u00e4hle eine Ladestation aus den Suchergebnissen.",
+        "data": {
+          "station_id": "Ladestation"
+        }
+      },
+      "reconfigure": {
+        "title": "Station neu konfigurieren",
+        "data": {
+          "station_id": "Stations-ID",
+          "api_key": "API-Schl\u00fcssel"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ung\u00fcltiger API-Schl\u00fcssel",
+      "cannot_connect": "Verbindung zur EnBW-API nicht m\u00f6glich",
+      "station_not_found": "Station nicht gefunden",
+      "no_stations_found": "Keine Stationen in diesem Bereich gefunden"
+    },
+    "abort": {
+      "already_configured": "Diese Station ist bereits konfiguriert",
+      "reconfigure_successful": "Neukonfiguration erfolgreich"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "scan_interval": "Aktualisierungsintervall"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "available_charge_points": {
+        "name": "Verf\u00fcgbare Ladepunkte"
+      },
+      "total_charge_points": {
+        "name": "Ladepunkte gesamt"
+      },
+      "unknown_charge_points": {
+        "name": "Ladepunkte mit unbekanntem Status"
+      },
+      "charge_point_status": {
+        "name": "Ladepunkt {index}",
+        "state": {
+          "AVAILABLE": "Verf\u00fcgbar",
+          "OCCUPIED": "Belegt",
+          "OUT_OF_SERVICE": "Au\u00dfer Betrieb"
+        }
+      },
+      "charge_point_power": {
+        "name": "Ladepunkt {index} Leistung"
+      }
+    },
+    "binary_sensor": {
+      "station_available": {
+        "name": "Verf\u00fcgbar"
+      }
+    }
+  }
+}
