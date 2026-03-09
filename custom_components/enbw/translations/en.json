@@ -77,6 +77,7 @@
         "name": "Charger {index}",
         "state": {
           "AVAILABLE": "Available",
+          "BLOCKED": "Blocked",
           "OCCUPIED": "Occupied",
           "OUT_OF_SERVICE": "Out of service"
         }
