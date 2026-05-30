@@ -1,12 +1,13 @@
 {
   "domain": "enbw",
   "name": "EnBW Charging Stations",
-  "codeowners": [],
+  "version": "1.0.0",
   "config_flow": true,
-  "documentation": "https://github.com/jens-kegelmann/homeassistant-enbw",
-  "integration_type": "service",
-  "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/jens-kegelmann/homeassistant-enbw/issues",
+  "documentation": "https://github.com/kegelmeier/ha-enbw",
+  "issue_tracker": "https://github.com/kegelmeier/ha-enbw/issues",
+  "codeowners": ["@kegelmeier"],
+  "dependencies": [],
   "requirements": [],
-  "version": "1.0.0"
+  "iot_class": "cloud_polling",
+  "integration_type": "service"
 }
