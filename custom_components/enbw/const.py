@@ -5,7 +5,7 @@ from typing import Final
 
 DOMAIN: Final = "enbw"
 
-API_BASE_URL: Final = "https://enbw-emp.azure-api.net/emobility-public-api/api/v1"
+API_BASE_URL: Final = "https://api.emp.emob-enbw.com/emobility-public-api/api/v1"
 API_STATION_URL: Final = f"{API_BASE_URL}/chargestations/{{station_id}}"
 API_SEARCH_URL: Final = f"{API_BASE_URL}/chargestations"
 
