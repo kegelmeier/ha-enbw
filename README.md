@@ -75,7 +75,7 @@ The integration uses EnBW's public API, which requires a subscription key:
 1. Open the [EnBW charging station map](https://www.enbw.com/elektromobilitaet/produkte/mobilityplus-app/ladestation-finden/map)
 2. Open your browser's Developer Tools (F12)
 3. Go to the **Network** tab
-4. Search for requests to `enbw-emp.azure-api.net`
+4. Search for requests to `api.emp.emob-enbw.com`
 5. Find the `Ocp-Apim-Subscription-Key` header value — this is your API key
 
 ### Adding a station
