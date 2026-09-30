@@ -7,7 +7,7 @@ from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers import device_registry as dr, issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import EnbwApiClient
@@ -53,9 +53,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    _async_remove_stale_devices(hass, entry)
+
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
     return True
+
+
+def _async_remove_stale_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove devices left over from station IDs this entry followed before.
+
+    Up to 1.1.0 every station ID change created a new device. Only the device
+    carrying the entry's stable base ID is current; removing the others also
+    removes their entities.
+    """
+    current = (DOMAIN, entry_base_id(entry))
+    registry = dr.async_get(hass)
+    for device in dr.async_entries_for_config_entry(registry, entry.entry_id):
+        if current not in device.identifiers:
+            registry.async_update_device(
+                device.id, remove_config_entry_id=entry.entry_id
+            )
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: ConfigEntry, device: dr.DeviceEntry
+) -> bool:
+    """Allow deleting any device except the entry's current station."""
+    return (DOMAIN, entry_base_id(entry)) not in device.identifiers
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:

@@ -464,3 +464,49 @@ async def test_reconfigure_keeps_base_id(hass: HomeAssistant, enable_custom_inte
     assert result["reason"] == "reconfigure_successful"
     assert entry.data[CONF_STATION_ID] == "3006640"
     assert entry.data[CONF_BASE_ID] == "enbw_2019593"
+
+
+async def test_stale_devices_are_removed_on_setup(
+    hass: HomeAssistant, enable_custom_integrations
+):
+    from unittest.mock import patch
+
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
+
+    from custom_components.enbw import async_remove_config_entry_device
+    from custom_components.enbw.const import CONF_BASE_ID
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="enbw_1250038",
+        data={CONF_STATION_ID: "3006640", CONF_API_KEY: "", CONF_BASE_ID: "enbw_2019593"},
+    )
+    entry.add_to_hass(hass)
+    devices = dr.async_get(hass)
+    entities = er.async_get(hass)
+    stale = devices.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={(DOMAIN, "enbw_1250038")}
+    )
+    entities.async_get_or_create(
+        "sensor", DOMAIN, "enbw_1250038_available",
+        config_entry=entry, device_id=stale.id,
+    )
+
+    with patch(
+        "custom_components.enbw.EnbwApiClient.get_station",
+        AsyncMock(return_value=make_station_data(station_id="3006640")),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert devices.async_get(stale.id) is None
+    assert not entities.async_get_entity_id("sensor", DOMAIN, "enbw_1250038_available")
+    remaining = dr.async_entries_for_config_entry(devices, entry.entry_id)
+    assert [d.identifiers for d in remaining] == [{(DOMAIN, "enbw_2019593")}]
+    current = remaining[0]
+    assert entities.async_get_entity_id("sensor", DOMAIN, "enbw_2019593_available")
+
+    # The current device can't be deleted from the UI; a stale one could.
+    assert await async_remove_config_entry_device(hass, entry, current) is False
+    other = MagicMock(identifiers={(DOMAIN, "enbw_999")})
+    assert await async_remove_config_entry_device(hass, entry, other) is True
