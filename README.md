@@ -68,25 +68,35 @@ After installing, add the integration:
 
 …or go to **Settings → Devices & Services → Add Integration → “EnBW Charging Stations”**.
 
-### Getting your API key
+### API key
 
-The integration uses EnBW's public API, which requires a subscription key:
+No API key is needed. The integration uses the public subscription key of the
+[EnBW charging station map](https://www.enbw.com/elektromobilitaet/produkte/mobilityplus-app/ladestation-finden/map).
+If EnBW moves the API or changes that key, the integration reads the new
+values from the map page by itself.
 
-1. Open the [EnBW charging station map](https://www.enbw.com/elektromobilitaet/produkte/mobilityplus-app/ladestation-finden/map)
-2. Open your browser's Developer Tools (F12)
-3. Go to the **Network** tab
-4. Search for requests to `enbw-emp.azure-api.net`
-5. Find the `Ocp-Apim-Subscription-Key` header value — this is your API key
+You can still enter your own `Ocp-Apim-Subscription-Key` (Developer Tools →
+Network on the map page). If EnBW rejects it, Home Assistant asks for a new one.
 
 ### Adding a station
 
 1. Go to **Settings → Devices & Services → Add Integration**
 2. Search for **EnBW Charging Stations**
 3. Choose either:
-   - **Enter station ID manually** — if you know the station ID
    - **Search by location** — to find nearby stations by coordinates
-4. Enter your API key
-5. The integration validates the connection and adds the station
+   - **Enter station ID manually** — if you know the station ID
+4. The integration validates the connection and adds the station
+
+### When a station gets a new ID
+
+Operators sometimes re-register a station under a new ID (for example
+"Clemensstraße 12" becomes "Clemensstraße 12A"). When the old ID disappears,
+the integration searches around the station's last known location for the same
+street, house number and operator, and follows the new ID. Entity IDs stay the
+same; per-charger sensors are rebuilt for the new charge points.
+
+If no match is found, a repair issue appears under **Settings → Repairs**. Use
+**Reconfigure** on the entry to pick the new station ID.
 
 ### Options
 
