@@ -290,11 +290,11 @@ class EnbwConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
                 if other is not None:
                     return self.async_abort(reason="already_configured")
-                # The entry keeps its unique ID so entity IDs stay stable.
+                # Keep base_id (and anything else stored) so entity IDs stay stable.
                 return self.async_update_reload_and_abort(
                     entry,
                     title=station.short_address or entry.title,
-                    data=self._entry_data(station, api_key),
+                    data={**entry.data, **self._entry_data(station, api_key)},
                 )
 
         return self.async_show_form(

@@ -38,6 +38,7 @@ CONF_LONGITUDE: Final = "longitude"
 CONF_SEARCH_RADIUS: Final = "search_radius"
 CONF_ADDRESS: Final = "address"
 CONF_OPERATOR: Final = "operator"
+CONF_BASE_ID: Final = "base_id"
 
 DEFAULT_SEARCH_RADIUS: Final = 2.0
 DEG_PER_KM: Final = 1 / 111
@@ -61,7 +62,8 @@ STATUS_UNKNOWN: Final = "UNKNOWN"
 def entry_base_id(entry) -> str:
     """Return the stable ID prefix for an entry's device and entities.
 
-    Equal to ``enbw_<original station id>``. It is kept when the station is
-    re-registered under a new ID, so entity IDs survive that change.
+    Up to 1.1.0 entity IDs were built from the station ID the entry followed
+    at the time. That prefix is stored once as ``base_id`` and then kept when
+    the station is re-registered or reconfigured, so entity IDs survive.
     """
-    return entry.unique_id or f"enbw_{entry.data[CONF_STATION_ID]}"
+    return entry.data.get(CONF_BASE_ID) or f"enbw_{entry.data[CONF_STATION_ID]}"

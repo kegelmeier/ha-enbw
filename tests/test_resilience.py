@@ -280,7 +280,7 @@ async def test_coordinator_follows_relocated_station(hass: HomeAssistant):
     assert coordinator.station_id == "3006640"
     assert entry.data[CONF_STATION_ID] == "3006640"
     assert entry.title == "Clemensstraße 12A, 80803 München, DE"
-    # Unique ID stays, so entity IDs are stable.
+    # Unique ID stays; entity IDs are anchored separately (see base_id tests).
     assert entry.unique_id == "enbw_2019593"
 
 
@@ -398,3 +398,69 @@ async def test_full_setup_and_relocation_keeps_entity_ids(
         assert registry.async_get_entity_id("binary_sensor", DOMAIN, "enbw_2019593_available_binary") == entity_id
         assert len(er.async_entries_for_config_entry(registry, entry.entry_id)) == 3 + 2 * 2 + 1
         assert hass.states.get(entity_id).attributes["station_id"] == "3006640"
+
+
+async def test_base_id_pins_prefix_used_by_1_1_0(
+    hass: HomeAssistant, enable_custom_integrations
+):
+    """An entry reconfigured under 1.1.0 keeps the entity IDs 1.1.0 created.
+
+    Its unique_id still names the very first station ID, but 1.1.0 built
+    entity IDs from the station ID in the entry data.
+    """
+    from unittest.mock import patch
+
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.enbw.const import CONF_BASE_ID
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="enbw_1250038",
+        title="Clemensstraße 12, 80803 München, DE",
+        data={CONF_STATION_ID: "2019593", CONF_API_KEY: ""},
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.enbw.EnbwApiClient.get_station",
+        AsyncMock(return_value=make_station_data(station_id="3006640")),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.data[CONF_BASE_ID] == "enbw_2019593"
+    registry = er.async_get(hass)
+    assert registry.async_get_entity_id("sensor", DOMAIN, "enbw_2019593_available")
+    assert not registry.async_get_entity_id("sensor", DOMAIN, "enbw_1250038_available")
+
+
+async def test_reconfigure_keeps_base_id(hass: HomeAssistant, enable_custom_integrations):
+    from unittest.mock import patch
+
+    from homeassistant.config_entries import SOURCE_RECONFIGURE
+
+    from custom_components.enbw.const import CONF_BASE_ID
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="enbw_1250038",
+        data={CONF_STATION_ID: "2019593", CONF_API_KEY: "", CONF_BASE_ID: "enbw_2019593"},
+    )
+    entry.add_to_hass(hass)
+
+    with (
+        patch(
+            "custom_components.enbw.config_flow.EnbwApiClient.get_station",
+            AsyncMock(return_value=make_station_data(station_id="3006640")),
+        ),
+        patch("custom_components.enbw.async_setup_entry", AsyncMock(return_value=True)),
+    ):
+        result = await entry.start_reconfigure_flow(hass)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_STATION_ID: "3006640", CONF_API_KEY: ""}
+        )
+
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.data[CONF_STATION_ID] == "3006640"
+    assert entry.data[CONF_BASE_ID] == "enbw_2019593"
