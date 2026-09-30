@@ -11,20 +11,26 @@
       },
       "manual": {
         "title": "Enter Station Details",
-        "description": "Enter the station ID and your API key. You can find both using browser developer tools on the [EnBW charging map](https://www.enbw.com/elektromobilitaet/produkte/mobilityplus-app/ladestation-finden/map).",
+        "description": "Enter the station ID. You can find it with a location search, or in your browser's developer tools on the [EnBW charging map](https://www.enbw.com/elektromobilitaet/produkte/mobilityplus-app/ladestation-finden/map).",
         "data": {
           "station_id": "Station ID",
           "api_key": "API Key"
+        },
+        "data_description": {
+          "api_key": "Optional. Leave empty to use the public key of the EnBW charging map; it is refreshed automatically if EnBW changes it."
         }
       },
       "search": {
         "title": "Search for Stations",
-        "description": "Search for charging stations near a location. Enter your API key and search coordinates.",
+        "description": "Search for charging stations near a location.",
         "data": {
           "api_key": "API Key",
           "latitude": "Latitude",
           "longitude": "Longitude",
           "search_radius": "Search radius"
+        },
+        "data_description": {
+          "api_key": "Optional. Leave empty to use the public key of the EnBW charging map; it is refreshed automatically if EnBW changes it."
         }
       },
       "select_station": {
@@ -39,6 +45,20 @@
         "data": {
           "station_id": "Station ID",
           "api_key": "API Key"
+        },
+        "data_description": {
+          "api_key": "Optional. Leave empty to use the public key of the EnBW charging map; it is refreshed automatically if EnBW changes it."
+        },
+        "description": "Change the followed station, e.g. after the operator re-registered it under a new ID."
+      },
+      "reauth_confirm": {
+        "data_description": {
+          "api_key": "Optional. Leave empty to use the public key of the EnBW charging map; it is refreshed automatically if EnBW changes it."
+        },
+        "title": "Update API key",
+        "description": "The EnBW API rejected the API key.",
+        "data": {
+          "api_key": "API Key"
         }
       }
     },
@@ -50,7 +70,8 @@
     },
     "abort": {
       "already_configured": "This station is already configured",
-      "reconfigure_successful": "Reconfiguration successful"
+      "reconfigure_successful": "Reconfiguration successful",
+      "reauth_successful": "API key updated"
     }
   },
   "options": {
@@ -79,7 +100,8 @@
           "AVAILABLE": "Available",
           "BLOCKED": "Blocked",
           "OCCUPIED": "Occupied",
-          "OUT_OF_SERVICE": "Out of service"
+          "OUT_OF_SERVICE": "Out of service",
+          "UNKNOWN": "Unknown"
         }
       },
       "charge_point_power": {
@@ -90,6 +112,12 @@
       "station_available": {
         "name": "Available"
       }
+    }
+  },
+  "issues": {
+    "station_not_found": {
+      "title": "Charging station {title} not found",
+      "description": "EnBW no longer knows station ID {station_id}, and no station at the same address was found nearby. Operators sometimes re-register stations under a new ID. Find the new ID with a location search and open **Settings → Devices & services → EnBW Charging Stations → {title} → ⋮ → Reconfigure** to switch to it, or remove the entry if the station is gone."
     }
   }
 }

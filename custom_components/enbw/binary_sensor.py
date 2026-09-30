@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_STATION_ID, DOMAIN
+from .const import DOMAIN, MAP_PAGE_URL, entry_base_id
 from .coordinator import EnbwCoordinator
 
 
@@ -39,22 +39,24 @@ class EnbwStationAvailableSensor(
     ) -> None:
         """Initialize the binary sensor."""
         super().__init__(coordinator)
-        self._station_id = entry.data[CONF_STATION_ID]
+        self._entry = entry
+        self._base_id = entry_base_id(entry)
 
     @property
     def unique_id(self) -> str:
         """Return unique ID."""
-        return f"enbw_{self._station_id}_available_binary"
+        return f"{self._base_id}_available_binary"
 
     @property
     def device_info(self):
         """Return device info."""
         data = self.coordinator.data
         return {
-            "identifiers": {(DOMAIN, f"enbw_{self._station_id}")},
-            "name": data.short_address if data else self._station_id,
+            "identifiers": {(DOMAIN, self._base_id)},
+            "name": data.short_address if data else self._entry.title,
             "manufacturer": data.operator if data else "EnBW",
             "model": "Charging Station",
+            "configuration_url": MAP_PAGE_URL,
         }
 
     @property
@@ -85,4 +87,5 @@ class EnbwStationAvailableSensor(
             "longitude": data.longitude,
             "max_power_kw": data.max_power_kw,
             "plug_types": data.plug_type_names,
+            "station_id": data.station_id,
         }

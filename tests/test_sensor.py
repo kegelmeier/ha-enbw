@@ -32,6 +32,8 @@ def _make_entry(station_id: str = MOCK_STATION_ID) -> MagicMock:
     """Create a mock config entry."""
     entry = MagicMock()
     entry.data = {CONF_STATION_ID: station_id}
+    entry.unique_id = f"enbw_{station_id}"
+    entry.title = "Teststraße 1, 12345 Berlin"
     return entry
 
 
