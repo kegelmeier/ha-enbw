@@ -9,10 +9,11 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfPower
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_STATION_ID, DOMAIN, STATUS_AVAILABLE, STATUS_BLOCKED, STATUS_OCCUPIED, STATUS_OUT_OF_SERVICE
+from .const import DOMAIN, MAP_PAGE_URL, STATUS_AVAILABLE, STATUS_BLOCKED, STATUS_OCCUPIED, STATUS_OUT_OF_SERVICE, STATUS_UNKNOWN, entry_base_id
 from .coordinator import EnbwCoordinator
 
 
@@ -31,14 +32,23 @@ async def async_setup_entry(
     ]
 
     # Create per-charge-point sensors
+    current_ids: set[str] = set()
     if coordinator.data and coordinator.data.charge_points:
         for i, cp in enumerate(coordinator.data.charge_points):
-            entities.append(
-                EnbwChargePointStatusSensor(coordinator, entry, cp.evse_id, i)
-            )
-            entities.append(
-                EnbwChargePointPowerSensor(coordinator, entry, cp.evse_id, i)
-            )
+            status = EnbwChargePointStatusSensor(coordinator, entry, cp.evse_id, i)
+            power = EnbwChargePointPowerSensor(coordinator, entry, cp.evse_id, i)
+            entities += [status, power]
+            current_ids |= {status.unique_id, power.unique_id}
+
+        # Drop chargers the station no longer has (e.g. after re-registration).
+        registry = er.async_get(hass)
+        for reg_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
+            if (
+                reg_entry.domain == "sensor"
+                and reg_entry.unique_id.endswith(("_status", "_power"))
+                and reg_entry.unique_id not in current_ids
+            ):
+                registry.async_remove(reg_entry.entity_id)
 
     async_add_entities(entities)
 
@@ -54,18 +64,18 @@ class EnbwBaseSensor(CoordinatorEntity[EnbwCoordinator], SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._entry = entry
-        self._station_id = entry.data[CONF_STATION_ID]
+        self._base_id = entry_base_id(entry)
 
     @property
     def device_info(self):
         """Return device info."""
         data = self.coordinator.data
         return {
-            "identifiers": {(DOMAIN, f"enbw_{self._station_id}")},
-            "name": data.short_address if data else self._station_id,
+            "identifiers": {(DOMAIN, self._base_id)},
+            "name": data.short_address if data else self._entry.title,
             "manufacturer": data.operator if data else "EnBW",
             "model": "Charging Station",
-            "configuration_url": f"https://www.enbw.com/elektromobilitaet/produkte/mobilityplus-app/ladestation-finden/map",
+            "configuration_url": MAP_PAGE_URL,
         }
 
 
@@ -79,7 +89,7 @@ class EnbwAvailableChargePointsSensor(EnbwBaseSensor):
     @property
     def unique_id(self) -> str:
         """Return unique ID."""
-        return f"enbw_{self._station_id}_available"
+        return f"{self._base_id}_available"
 
     @property
     def native_value(self) -> int | None:
@@ -99,7 +109,7 @@ class EnbwTotalChargePointsSensor(EnbwBaseSensor):
     @property
     def unique_id(self) -> str:
         """Return unique ID."""
-        return f"enbw_{self._station_id}_total"
+        return f"{self._base_id}_total"
 
     @property
     def native_value(self) -> int | None:
@@ -120,7 +130,7 @@ class EnbwUnknownChargePointsSensor(EnbwBaseSensor):
     @property
     def unique_id(self) -> str:
         """Return unique ID."""
-        return f"enbw_{self._station_id}_unknown"
+        return f"{self._base_id}_unknown"
 
     @property
     def native_value(self) -> int | None:
@@ -147,7 +157,7 @@ class EnbwChargePointStatusSensor(EnbwBaseSensor):
         super().__init__(coordinator, entry)
         self._evse_id = evse_id
         self._index = index
-        self._attr_options = [STATUS_AVAILABLE, STATUS_BLOCKED, STATUS_OCCUPIED, STATUS_OUT_OF_SERVICE]
+        self._attr_options = [STATUS_AVAILABLE, STATUS_BLOCKED, STATUS_OCCUPIED, STATUS_OUT_OF_SERVICE, STATUS_UNKNOWN]
 
     @property
     def unique_id(self) -> str:
@@ -200,6 +210,9 @@ class EnbwChargePointStatusSensor(EnbwBaseSensor):
             "max_power_kw": cp.max_power_kw,
             "cable_attached": [c.cable_attached for c in cp.connectors],
             "handicapped_accessible": cp.handicapped_accessible,
+            "status_changed_at": (
+                cp.status_updated_at.isoformat() if cp.status_updated_at else None
+            ),
         }
 
     def _get_charge_point(self):

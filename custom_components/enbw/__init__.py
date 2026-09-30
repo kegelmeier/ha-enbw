@@ -7,28 +7,32 @@ from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import EnbwApiClient
-from .const import CONF_API_KEY, CONF_SCAN_INTERVAL, CONF_STATION_ID, DEFAULT_SCAN_INTERVAL, DOMAIN
-from .coordinator import EnbwCoordinator
+from .const import CONF_API_KEY, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .coordinator import EnbwCoordinator, station_not_found_issue_id
 
 PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR]
+
+
+def _scan_interval(entry: ConfigEntry) -> int:
+    """Return the configured scan interval in seconds."""
+    return int(
+        entry.options.get(
+            CONF_SCAN_INTERVAL, int(DEFAULT_SCAN_INTERVAL.total_seconds())
+        )
+    )
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up EnBW Charging Stations from a config entry."""
     session = async_get_clientsession(hass)
-    api_key = entry.data[CONF_API_KEY]
-    station_id = entry.data[CONF_STATION_ID]
-
-    scan_interval_seconds = entry.options.get(
-        CONF_SCAN_INTERVAL, int(DEFAULT_SCAN_INTERVAL.total_seconds())
+    client = EnbwApiClient(session, entry.data.get(CONF_API_KEY) or None)
+    coordinator = EnbwCoordinator(
+        hass, entry, client, timedelta(seconds=_scan_interval(entry))
     )
-    update_interval = timedelta(seconds=scan_interval_seconds)
-
-    client = EnbwApiClient(session, api_key)
-    coordinator = EnbwCoordinator(hass, client, station_id, update_interval)
 
     await coordinator.async_config_entry_first_refresh()
 
@@ -42,8 +46,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options update."""
-    await hass.config_entries.async_reload(entry.entry_id)
+    """Reload when the scan interval changed.
+
+    The coordinator also updates the entry data (location, relocated station
+    ID); those updates must not trigger a reload of their own.
+    """
+    coordinator: EnbwCoordinator | None = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if coordinator is None or coordinator.update_interval != timedelta(
+        seconds=_scan_interval(entry)
+    ):
+        await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -52,3 +64,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Clean up a repair issue left by a removed entry."""
+    ir.async_delete_issue(hass, DOMAIN, station_not_found_issue_id(entry))

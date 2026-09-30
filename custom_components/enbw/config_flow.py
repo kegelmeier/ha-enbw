@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
@@ -32,9 +33,11 @@ from .api import (
     StationData,
 )
 from .const import (
+    CONF_ADDRESS,
     CONF_API_KEY,
     CONF_LATITUDE,
     CONF_LONGITUDE,
+    CONF_OPERATOR,
     CONF_SCAN_INTERVAL,
     CONF_SEARCH_RADIUS,
     CONF_STATION_ID,
@@ -60,10 +63,33 @@ class EnbwConfigFlow(ConfigFlow, domain=DOMAIN):
         self._stations: list[StationData] = []
         self._station_name: str = ""
 
-    def _get_client(self, api_key: str) -> EnbwApiClient:
-        """Create an API client."""
+    def _get_client(self, api_key: str | None) -> EnbwApiClient:
+        """Create an API client; an empty key uses the public EnBW key."""
         session = async_get_clientsession(self.hass)
-        return EnbwApiClient(session, api_key)
+        return EnbwApiClient(session, (api_key or "").strip() or None)
+
+    @staticmethod
+    def _entry_data(station: StationData, api_key: str | None) -> dict[str, Any]:
+        """Build config entry data, including what is needed to relocate it."""
+        return {
+            CONF_STATION_ID: station.station_id,
+            CONF_API_KEY: (api_key or "").strip(),
+            CONF_STATION_NAME: station.name,
+            CONF_ADDRESS: station.short_address,
+            CONF_OPERATOR: station.operator,
+            CONF_LATITUDE: station.latitude,
+            CONF_LONGITUDE: station.longitude,
+        }
+
+    async def _async_check_unique(self, station_id: str) -> None:
+        """Abort if the station is already configured.
+
+        Relocated entries keep their original unique ID, so also compare the
+        station ID they currently follow.
+        """
+        await self.async_set_unique_id(f"enbw_{station_id}")
+        self._abort_if_unique_id_configured()
+        self._async_abort_entries_match({CONF_STATION_ID: station_id})
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -81,7 +107,7 @@ class EnbwConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            api_key = user_input[CONF_API_KEY]
+            api_key = user_input.get(CONF_API_KEY, "")
             station_id = user_input[CONF_STATION_ID].strip()
 
             client = self._get_client(api_key)
@@ -95,16 +121,13 @@ class EnbwConfigFlow(ConfigFlow, domain=DOMAIN):
             except EnbwConnectionError:
                 errors["base"] = "cannot_connect"
             else:
-                await self.async_set_unique_id(f"enbw_{station_id}")
-                self._abort_if_unique_id_configured()
+                await self._async_check_unique(station.station_id or station_id)
+                if not station.station_id:
+                    station.station_id = station_id
 
                 return self.async_create_entry(
                     title=station.short_address or station.name,
-                    data={
-                        CONF_STATION_ID: station_id,
-                        CONF_API_KEY: api_key,
-                        CONF_STATION_NAME: station.name,
-                    },
+                    data=self._entry_data(station, api_key),
                 )
 
         return self.async_show_form(
@@ -114,7 +137,7 @@ class EnbwConfigFlow(ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_STATION_ID): TextSelector(
                         TextSelectorConfig(type=TextSelectorType.TEXT)
                     ),
-                    vol.Required(CONF_API_KEY): TextSelector(
+                    vol.Optional(CONF_API_KEY, default=""): TextSelector(
                         TextSelectorConfig(type=TextSelectorType.PASSWORD)
                     ),
                 }
@@ -129,7 +152,7 @@ class EnbwConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            api_key = user_input[CONF_API_KEY]
+            api_key = user_input.get(CONF_API_KEY, "")
             latitude = user_input[CONF_LATITUDE]
             longitude = user_input[CONF_LONGITUDE]
             radius = user_input.get(CONF_SEARCH_RADIUS, DEFAULT_SEARCH_RADIUS)
@@ -168,17 +191,17 @@ class EnbwConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="search",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_API_KEY): TextSelector(
-                        TextSelectorConfig(type=TextSelectorType.PASSWORD)
-                    ),
                     vol.Required(CONF_LATITUDE, default=ha_lat): vol.Coerce(float),
                     vol.Required(CONF_LONGITUDE, default=ha_lon): vol.Coerce(float),
                     vol.Optional(
                         CONF_SEARCH_RADIUS, default=DEFAULT_SEARCH_RADIUS
                     ): NumberSelector(
                         NumberSelectorConfig(
-                            min=1, max=50, step=1, mode=NumberSelectorMode.SLIDER, unit_of_measurement="km",
+                            min=1, max=20, step=1, mode=NumberSelectorMode.SLIDER, unit_of_measurement="km",
                         )
+                    ),
+                    vol.Optional(CONF_API_KEY, default=""): TextSelector(
+                        TextSelectorConfig(type=TextSelectorType.PASSWORD)
                     ),
                 }
             ),
@@ -192,21 +215,24 @@ class EnbwConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             station_id = user_input[CONF_STATION_ID]
 
-            await self.async_set_unique_id(f"enbw_{station_id}")
-            self._abort_if_unique_id_configured()
+            await self._async_check_unique(station_id)
 
             station = next(
                 (s for s in self._stations if s.station_id == station_id), None
             )
-            title = station.short_address if station else station_id
+            if station is None:
+                return self.async_create_entry(
+                    title=station_id,
+                    data={
+                        CONF_STATION_ID: station_id,
+                        CONF_API_KEY: self._api_key,
+                        CONF_STATION_NAME: "",
+                    },
+                )
 
             return self.async_create_entry(
-                title=title,
-                data={
-                    CONF_STATION_ID: station_id,
-                    CONF_API_KEY: self._api_key,
-                    CONF_STATION_NAME: station.name if station else "",
-                },
+                title=station.short_address or station.name,
+                data=self._entry_data(station, self._api_key),
             )
 
         options = []
@@ -238,7 +264,7 @@ class EnbwConfigFlow(ConfigFlow, domain=DOMAIN):
         entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
 
         if user_input is not None:
-            api_key = user_input[CONF_API_KEY]
+            api_key = user_input.get(CONF_API_KEY, "")
             station_id = user_input[CONF_STATION_ID].strip()
 
             client = self._get_client(api_key)
@@ -251,13 +277,24 @@ class EnbwConfigFlow(ConfigFlow, domain=DOMAIN):
             except EnbwConnectionError:
                 errors["base"] = "cannot_connect"
             else:
+                if not station.station_id:
+                    station.station_id = station_id
+                other = next(
+                    (
+                        e
+                        for e in self._async_current_entries(include_ignore=False)
+                        if e.entry_id != entry.entry_id
+                        and e.data.get(CONF_STATION_ID) == station.station_id
+                    ),
+                    None,
+                )
+                if other is not None:
+                    return self.async_abort(reason="already_configured")
+                # The entry keeps its unique ID so entity IDs stay stable.
                 return self.async_update_reload_and_abort(
                     entry,
-                    data={
-                        CONF_STATION_ID: station_id,
-                        CONF_API_KEY: api_key,
-                        CONF_STATION_NAME: station.name,
-                    },
+                    title=station.short_address or entry.title,
+                    data=self._entry_data(station, api_key),
                 )
 
         return self.async_show_form(
@@ -267,9 +304,49 @@ class EnbwConfigFlow(ConfigFlow, domain=DOMAIN):
                     vol.Required(
                         CONF_STATION_ID, default=entry.data.get(CONF_STATION_ID, "")
                     ): TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT)),
-                    vol.Required(
+                    vol.Optional(
                         CONF_API_KEY, default=entry.data.get(CONF_API_KEY, "")
                     ): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD)),
+                }
+            ),
+            errors=errors,
+        )
+
+    async def async_step_reauth(
+        self, entry_data: Mapping[str, Any]
+    ) -> FlowResult:
+        """Handle a rejected API key."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Ask for a new API key; empty uses the public EnBW key."""
+        errors: dict[str, str] = {}
+        entry = self._get_reauth_entry()
+
+        if user_input is not None:
+            api_key = user_input.get(CONF_API_KEY, "")
+            client = self._get_client(api_key)
+            try:
+                valid = await client.validate_api_key(entry.data[CONF_STATION_ID])
+            except EnbwConnectionError:
+                errors["base"] = "cannot_connect"
+            else:
+                if valid:
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        data_updates={CONF_API_KEY: api_key.strip()},
+                    )
+                errors["base"] = "invalid_auth"
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_API_KEY, default=""): TextSelector(
+                        TextSelectorConfig(type=TextSelectorType.PASSWORD)
+                    ),
                 }
             ),
             errors=errors,

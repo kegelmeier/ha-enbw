@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "EnBW Ladestation",
-        "description": "W\u00e4hle, wie du eine Ladestation hinzuf\u00fcgen m\u00f6chtest.",
+        "description": "Wähle, wie du eine Ladestation hinzufügen möchtest.",
         "menu_options": {
           "manual": "Stations-ID manuell eingeben",
           "search": "Nach Standort suchen"
@@ -11,25 +11,31 @@
       },
       "manual": {
         "title": "Stationsdetails eingeben",
-        "description": "Gib die Stations-ID und deinen API-Schl\u00fcssel ein. Beides findest du \u00fcber die Browser-Entwicklertools auf der [EnBW Ladekarte](https://www.enbw.com/elektromobilitaet/produkte/mobilityplus-app/ladestation-finden/map).",
+        "description": "Gib die Stations-ID ein. Du findest sie über die Standortsuche oder in den Entwicklertools deines Browsers auf der [EnBW-Ladekarte](https://www.enbw.com/elektromobilitaet/produkte/mobilityplus-app/ladestation-finden/map).",
         "data": {
           "station_id": "Stations-ID",
-          "api_key": "API-Schl\u00fcssel"
+          "api_key": "API-Schlüssel"
+        },
+        "data_description": {
+          "api_key": "Optional. Leer lassen, um den öffentlichen Schlüssel der EnBW-Ladekarte zu nutzen; er wird automatisch aktualisiert, wenn EnBW ihn ändert."
         }
       },
       "search": {
         "title": "Ladestationen suchen",
-        "description": "Suche nach Ladestationen in der N\u00e4he eines Standorts. Gib deinen API-Schl\u00fcssel und die Suchkoordinaten ein.",
+        "description": "Suche Ladestationen in der Nähe eines Standorts.",
         "data": {
-          "api_key": "API-Schl\u00fcssel",
+          "api_key": "API-Schlüssel",
           "latitude": "Breitengrad",
-          "longitude": "L\u00e4ngengrad",
+          "longitude": "Längengrad",
           "search_radius": "Suchradius"
+        },
+        "data_description": {
+          "api_key": "Optional. Leer lassen, um den öffentlichen Schlüssel der EnBW-Ladekarte zu nutzen; er wird automatisch aktualisiert, wenn EnBW ihn ändert."
         }
       },
       "select_station": {
-        "title": "Station ausw\u00e4hlen",
-        "description": "W\u00e4hle eine Ladestation aus den Suchergebnissen.",
+        "title": "Station auswählen",
+        "description": "Wähle eine Ladestation aus den Suchergebnissen.",
         "data": {
           "station_id": "Ladestation"
         }
@@ -38,19 +44,34 @@
         "title": "Station neu konfigurieren",
         "data": {
           "station_id": "Stations-ID",
-          "api_key": "API-Schl\u00fcssel"
+          "api_key": "API-Schlüssel"
+        },
+        "data_description": {
+          "api_key": "Optional. Leer lassen, um den öffentlichen Schlüssel der EnBW-Ladekarte zu nutzen; er wird automatisch aktualisiert, wenn EnBW ihn ändert."
+        },
+        "description": "Ändere die verfolgte Station, z. B. wenn der Betreiber sie unter einer neuen ID neu registriert hat."
+      },
+      "reauth_confirm": {
+        "data_description": {
+          "api_key": "Optional. Leer lassen, um den öffentlichen Schlüssel der EnBW-Ladekarte zu nutzen; er wird automatisch aktualisiert, wenn EnBW ihn ändert."
+        },
+        "title": "API-Schlüssel aktualisieren",
+        "description": "Die EnBW-API hat den API-Schlüssel abgelehnt.",
+        "data": {
+          "api_key": "API-Schlüssel"
         }
       }
     },
     "error": {
-      "invalid_auth": "Ung\u00fcltiger API-Schl\u00fcssel",
-      "cannot_connect": "Verbindung zur EnBW-API nicht m\u00f6glich",
+      "invalid_auth": "Ungültiger API-Schlüssel",
+      "cannot_connect": "Verbindung zur EnBW-API nicht möglich",
       "station_not_found": "Station nicht gefunden",
       "no_stations_found": "Keine Stationen in diesem Bereich gefunden"
     },
     "abort": {
       "already_configured": "Diese Station ist bereits konfiguriert",
-      "reconfigure_successful": "Neukonfiguration erfolgreich"
+      "reconfigure_successful": "Neukonfiguration erfolgreich",
+      "reauth_successful": "API-Schlüssel aktualisiert"
     }
   },
   "options": {
@@ -65,7 +86,7 @@
   "entity": {
     "sensor": {
       "available_charge_points": {
-        "name": "Verf\u00fcgbare Ladepunkte"
+        "name": "Verfügbare Ladepunkte"
       },
       "total_charge_points": {
         "name": "Ladepunkte gesamt"
@@ -76,10 +97,11 @@
       "charge_point_status": {
         "name": "Ladepunkt {index}",
         "state": {
-          "AVAILABLE": "Verf\u00fcgbar",
+          "AVAILABLE": "Verfügbar",
           "BLOCKED": "Blockiert",
           "OCCUPIED": "Belegt",
-          "OUT_OF_SERVICE": "Au\u00dfer Betrieb"
+          "OUT_OF_SERVICE": "Außer Betrieb",
+          "UNKNOWN": "Unbekannt"
         }
       },
       "charge_point_power": {
@@ -88,8 +110,14 @@
     },
     "binary_sensor": {
       "station_available": {
-        "name": "Verf\u00fcgbar"
+        "name": "Verfügbar"
       }
+    }
+  },
+  "issues": {
+    "station_not_found": {
+      "title": "Ladestation {title} nicht gefunden",
+      "description": "EnBW kennt die Stations-ID {station_id} nicht mehr, und in der Nähe wurde keine Station mit derselben Adresse gefunden. Betreiber registrieren Stationen manchmal unter einer neuen ID. Suche die neue ID über die Standortsuche und wechsle unter **Einstellungen → Geräte & Dienste → EnBW Charging Stations → {title} → ⋮ → Neu konfigurieren** darauf, oder entferne den Eintrag, falls die Station abgebaut wurde."
     }
   }
 }
