@@ -11,7 +11,14 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import EnbwApiClient
-from .const import CONF_API_KEY, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import (
+    CONF_API_KEY,
+    CONF_BASE_ID,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    entry_base_id,
+)
 from .coordinator import EnbwCoordinator, station_not_found_issue_id
 
 PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR]
@@ -28,6 +35,12 @@ def _scan_interval(entry: ConfigEntry) -> int:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up EnBW Charging Stations from a config entry."""
+    if CONF_BASE_ID not in entry.data:
+        # Pin the entity ID prefix before the station ID can change.
+        hass.config_entries.async_update_entry(
+            entry, data={**entry.data, CONF_BASE_ID: entry_base_id(entry)}
+        )
+
     session = async_get_clientsession(hass)
     client = EnbwApiClient(session, entry.data.get(CONF_API_KEY) or None)
     coordinator = EnbwCoordinator(
